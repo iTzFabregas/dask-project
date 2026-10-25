@@ -51,7 +51,8 @@ bash "$@"
 
     def run_launcher(self, mode='smoke', fail=False):
         env = {**os.environ, 'CALL_LOG': (self.root / 'calls.log').as_posix(),
-               'SIMULATE_FAILURE': '1' if fail else '0'}
+               'SIMULATE_FAILURE': '1' if fail else '0',
+               'EXPORTS_HOST_DIR': (self.root / 'exports').as_posix()}
         process = subprocess.run([bash_executable(), self.harness.as_posix(),
             (self.root / 'scripts/vm.sh').as_posix(), mode], env=env,
             text=True, capture_output=True, timeout=30)
@@ -75,6 +76,7 @@ bash "$@"
         self.assertTrue(stop < build < units < smoke < web)
         self.assertIn('vm-smoke-0123456789', calls[smoke])
         self.assertEqual((self.root / '.env').read_bytes(), (self.root / '.env.vm.example').read_bytes())
+        self.assertTrue((self.root / 'exports/setup').is_dir())
         self.assertFalse(any('prune' in c or '--volumes' in c for c in calls))
 
     def test_failure_stops_before_publishing(self):

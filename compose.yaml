@@ -22,7 +22,7 @@ services:
       - inputs:/data/inputs
       - experiments:/data/experiments
       - scratch:/scratch
-      - ./exports:/exports
+      - ${EXPORTS_HOST_DIR:-./exports}:/exports
   results:
     image: grupo05-dask:cp3
     init: true
@@ -33,7 +33,7 @@ services:
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${RESULTS_PORT:-5285}:8080"
     volumes:
-      - ./exports:/exports:ro
+      - ${EXPORTS_HOST_DIR:-./exports}:/exports:ro
   dashboard:
     extends:
       service: experiment

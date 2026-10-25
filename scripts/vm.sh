@@ -38,8 +38,10 @@ if [[ ! "$EXPERIMENT_ID" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     printf 'O identificador so pode conter letras, numeros, _ e -.\n' >&2
     exit 2
 fi
-mkdir -p exports/setup
-LOG="exports/setup/${EXPERIMENT_ID}.log"
+EXPORTS_HOST_DIR="${EXPORTS_HOST_DIR:-/tmp/grupo05-dask-exports-${UID}}"
+export EXPORTS_HOST_DIR
+mkdir -p "$EXPORTS_HOST_DIR/setup"
+LOG="$EXPORTS_HOST_DIR/setup/${EXPERIMENT_ID}.log"
 
 on_error() {
     local status=$?
@@ -53,12 +55,12 @@ trap on_error ERR
 # Stop only this Compose project's auxiliaries before collecting measurements.
 printf '\n[1/6] Preparando o projeto e encerrando suas interfaces anteriores...\n'
 docker compose --profile demo stop results dashboard
-docker compose config > exports/setup/compose-effective.yaml
-docker info > exports/setup/docker-info.txt
+docker compose config > "$EXPORTS_HOST_DIR/setup/compose-effective.yaml"
+docker info > "$EXPORTS_HOST_DIR/setup/docker-info.txt"
 
 printf '\n[2/6] Construindo a imagem Linux...\n'
 docker compose build experiment 2>&1 | tee -a "$LOG"
-docker image inspect grupo05-dask:cp3 > exports/setup/image-inspect.json
+docker image inspect grupo05-dask:cp3 > "$EXPORTS_HOST_DIR/setup/image-inspect.json"
 
 printf '\n[3/6] Executando os testes automatizados...\n'
 docker compose run --rm --no-deps --entrypoint python experiment \
