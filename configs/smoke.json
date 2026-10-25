@@ -1,0 +1,11 @@
+{
+  "mode": "smoke", "blocks": 1, "order_seed": 95405,
+  "volumes": {"smoke": 16384}, "physical_files": 8,
+  "seeds": {"a": 105, "b": 205}, "timeout_s": 240,
+  "max_attempts": 2, "sample_interval_s": 0.05,
+  "scenarios": [
+    {"volume": "smoke", "approach": "pandas", "workers": 0, "partitions": 0},
+    {"volume": "smoke", "approach": "dask", "workers": 1, "partitions": 4},
+    {"volume": "smoke", "approach": "dask", "workers": 2, "partitions": 4}
+  ]
+}

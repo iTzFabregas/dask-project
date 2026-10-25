@@ -1,0 +1,13 @@
+.git
+.test-deps
+.venv
+.venv-check
+exports
+local-check
+__pycache__
+*.pyc
+tmp
+evidence
+.env
+.env.*
+!.env.vm.example

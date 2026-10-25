@@ -1,0 +1,46 @@
+name: grupo05-dask
+services:
+  experiment:
+    build: .
+    image: grupo05-dask:cp3
+    init: true
+    cpus: ${EXPERIMENT_CPUS:-2.0}
+    mem_limit: ${EXPERIMENT_MEMORY:-3g}
+    memswap_limit: ${EXPERIMENT_MEMORY:-3g}
+    environment:
+      EXPERIMENT_ENV: ${EXPERIMENT_ENV:-PC local}
+      EXPECTED_CPUS: ${EXPERIMENT_CPUS:-2.0}
+      EXPECTED_MEMORY: ${EXPERIMENT_MEMORY:-3g}
+      WORKER_MEMORY_MIB: ${WORKER_MEMORY_MIB:-768}
+      DATA_ROOT: /data/inputs
+      RESULTS_ROOT: /data/experiments
+      SCRATCH_ROOT: /scratch
+      SOURCE_COMMIT: ${SOURCE_COMMIT:-unavailable}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${DASHBOARD_PORT:-5185}:8787"
+    volumes:
+      - inputs:/data/inputs
+      - experiments:/data/experiments
+      - scratch:/scratch
+      - ./exports:/exports
+  results:
+    image: grupo05-dask:cp3
+    init: true
+    profiles: [demo]
+    cpus: 0.25
+    mem_limit: 128m
+    entrypoint: [python, -m, pilot, serve, --port, "8080", --bind, "0.0.0.0", --directory, /exports]
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${RESULTS_PORT:-5285}:8080"
+    volumes:
+      - ./exports:/exports:ro
+  dashboard:
+    extends:
+      service: experiment
+    profiles: [demo]
+    command: [demo-cluster, --workers, "2"]
+    restart: unless-stopped
+volumes:
+  inputs:
+  experiments:
+  scratch:
