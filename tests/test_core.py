@@ -10,7 +10,7 @@ import pandas as pd
 
 from pilot.common import cgroup_state, read_json, verify_limits
 from pilot.data import generate, validate, values
-from pilot.runner import run_config, scenario_key
+from pilot.runner import override_dask_scenarios, run_config, scenario_key
 
 
 def temporary_directory():
@@ -75,6 +75,14 @@ class CorrectnessTests(unittest.TestCase):
     def test_host_cannot_be_presented_as_pilot(self):
         with self.assertRaisesRegex(ValueError, 'cannot be labelled'):
             run_config({'mode': 'pilot'}, 'bad', allow_host=True)
+
+    def test_runtime_overrides_dask_scenarios_without_duplicates(self):
+        config = read_json('configs/smoke.json')
+        updated = override_dask_scenarios(config, workers=4, partitions=8)
+        self.assertEqual(len(updated['scenarios']), 2)
+        dask = next(s for s in updated['scenarios'] if s['approach'] == 'dask')
+        self.assertEqual((dask['workers'], dask['partitions']), (4, 8))
+        self.assertEqual(len(config['scenarios']), 3)
 
 
 class AnalysisTests(unittest.TestCase):

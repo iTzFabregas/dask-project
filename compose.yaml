@@ -38,7 +38,7 @@ services:
     extends:
       service: experiment
     profiles: [demo]
-    command: [demo-cluster, --workers, "2"]
+    command: [demo-cluster, --workers, "${DASHBOARD_WORKERS:-2}"]
     restart: unless-stopped
 volumes:
   inputs:

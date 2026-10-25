@@ -19,6 +19,24 @@ def scenario_key(s):
     return f"{s['volume']}-{s['approach']}-w{s['workers']}-p{s['partitions']}"
 
 
+def override_dask_scenarios(config, workers=None, partitions=None):
+    updated = copy.deepcopy(config)
+    scenarios = []
+    seen = set()
+    for scenario in updated['scenarios']:
+        if scenario['approach'] == 'dask':
+            if workers is not None:
+                scenario['workers'] = workers
+            if partitions is not None:
+                scenario['partitions'] = partitions
+        key = scenario_key(scenario)
+        if key not in seen:
+            seen.add(key)
+            scenarios.append(scenario)
+    updated['scenarios'] = scenarios
+    return updated
+
+
 def source_id():
     files = sorted(Path('pilot').glob('*.py')) + sorted(Path('configs').glob('*.json'))
     files += [Path(p) for p in ('Dockerfile', 'compose.yaml', 'requirements.lock.txt') if Path(p).exists()]
@@ -53,8 +71,10 @@ def run_config(config, experiment_id, allow_host=False):
     for s in config['scenarios']:
         if s['approach'] not in ('pandas', 'dask') or s['volume'] not in config['volumes']:
             raise ValueError('Invalid scenario')
-        if s['approach'] == 'dask' and (s['workers'] not in (1, 2) or s['partitions'] < 2):
-            raise ValueError('Pilot requires 1/2 workers and multiple partitions')
+        if s['approach'] == 'dask' and (
+                s['workers'] not in (1, 2, 4, 8, 16) or
+                s['partitions'] not in (1, 2, 4, 8, 16, 32, 64)):
+            raise ValueError('Dask worker/partition values are outside the supported range')
         if s['approach'] == 'pandas' and (s['workers'] or s['partitions']):
             raise ValueError('Pandas must have workers=partitions=0')
     state = cgroup_state()
@@ -188,8 +208,8 @@ def run_config(config, experiment_id, allow_host=False):
         lock.unlink(missing_ok=True)
 
 
-def pilot_with_gates(config, experiment_id):
-    smoke = read_json('configs/smoke.json')
+def pilot_with_gates(config, experiment_id, smoke_config=None):
+    smoke = smoke_config or read_json('configs/smoke.json')
     run_config(smoke, experiment_id + '-smoke')
     preflight = copy.deepcopy(config)
     preflight.update(mode='preflight', blocks=1)

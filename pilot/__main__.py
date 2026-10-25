@@ -22,6 +22,9 @@ def main():
         sub.add_argument('--config', default=default)
         sub.add_argument('--experiment', required=True)
         sub.add_argument('--export-dir', default='/exports')
+        if command in ('smoke', 'pilot'):
+            sub.add_argument('--workers', type=int)
+            sub.add_argument('--partitions', type=int)
         if command == 'scenario':
             sub.add_argument('--volume', choices=['small', 'medium', 'large'], required=True)
             sub.add_argument('--approach', choices=['pandas', 'dask'], required=True)
@@ -75,8 +78,14 @@ def main():
             print(analyze(path))
         print(export(path, args.export_dir))
         return 0
-    from .runner import pilot_with_gates, run_config
+    from .runner import override_dask_scenarios, pilot_with_gates, run_config
     config = read_json(args.config)
+    smoke_config = None
+    if args.command in ('smoke', 'pilot'):
+        config = override_dask_scenarios(config, args.workers, args.partitions)
+        if args.command == 'pilot':
+            smoke_config = override_dask_scenarios(
+                read_json('configs/smoke.json'), args.workers, args.partitions)
     if args.command == 'scenario':
         config = copy.deepcopy(config)
         config.update(mode='scenario', blocks=args.repetitions)
@@ -87,7 +96,7 @@ def main():
     if args.command == 'host-check':
         config['mode'] = 'host-check'
     try:
-        path = pilot_with_gates(config, args.experiment) if args.command == 'pilot' else run_config(
+        path = pilot_with_gates(config, args.experiment, smoke_config) if args.command == 'pilot' else run_config(
             config, args.experiment, allow_host=args.command == 'host-check')
     except Exception:
         # Export failed sessions too, preserving every attempt and honest incomplete status.
